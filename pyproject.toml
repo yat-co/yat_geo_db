@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yat_geo_db"
+version = "1.0.3"
+authors = [
+  { name="Robert Goss", email="rgoss@yat.ai" },
+  { name="Jarod Hart", email="jhart@yat.ai" },
+]
+description = "A simple and effective Python wrapper around the Open Geo DB managed by YAT"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/yat-co/yat-geo-db"
+"Bug Tracker" = "https://github.com/yat-co/yat-geo-db/issues"
