@@ -122,3 +122,9 @@ print(res)
 >>> 142899, 142900, 241027, 119206, 119572, 133787, 119196, 119567, 119977, 6622, 134214, 134217, 143024, 179468, 133797, 133808, 
 >>> 119980, 119201, 119204, 119205, 119210, 142902, 142906, 142907, 142908, 142909]
 ```
+
+### Example 
+
+For an example microservice implementation with Flask check out this [repository](https://github.com/yat-co/yat_geo_db_api).
+
+Of try out the free API with documentation here [YAT Demo](https://demo.yat.ai).
