@@ -237,7 +237,8 @@ class RadiusSearchManager(object):
                       reference_code,
                       radius,
                       country_exact: bool = False,
-                      full_results: bool = False):
+                      full_results: bool = False, 
+                      filters: Dict = None):
         """
         Perform Radius Search by Reference Code
         
@@ -271,8 +272,9 @@ class RadiusSearchManager(object):
         shape_id_ls = self.get_radius_lat_lng_shape_ids(
             latitude=shape_obj['latitude'],
             longitude=shape_obj['longitude'],
-            radius=radius, 
-            country_filter=country_filter
+            radius=radius,
+            country_filter=country_filter,
+            filters=filters
         )
 
         # Return full results if parameter specified
@@ -291,7 +293,12 @@ class RadiusSearchManager(object):
 
         return shape_id_ls
 
-    def get_radius_lat_lng_shape_ids(self, latitude, longitude, radius, country_filter: str = None):
+    def get_radius_lat_lng_shape_ids(self,
+                                     latitude,
+                                     longitude,
+                                     radius,
+                                     country_filter: str = None,
+                                     filters: Dict = None):
         lng_delta = longitude_delta_from_miles(lat=latitude, miles=radius)
         lat_delta = latitude_delta_from_miles(miles=radius)
         res = [
@@ -302,6 +309,9 @@ class RadiusSearchManager(object):
                 lat_delta=lat_delta,
                 lng_delta=lng_delta,
                 country_filter=country_filter
+            )
+            and apply_shape_filters(
+                value=radius_shape.shape_extra, filters=filters
             )
         ]
         return res
@@ -459,7 +469,11 @@ class NgramSearchManager(object):
             return fuzzy_score * .9
         return (fuzzy_score * .9) + (log(population) * .1)
 
-    def fuzzy_search(self, search_entity: str, partition=None, num_results=50, filters=None):
+    def fuzzy_search(self,
+                     search_entity: str,
+                     partition: str = None,
+                     num_results: int = 50,
+                     filters: Dict = None):
         """
         Sample values to compare against by passing the parameter `filters` to search
         {
