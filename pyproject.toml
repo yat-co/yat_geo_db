@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yat_geo_db"
-version = "1.0.4"
+version = "1.0.5"
 authors = [
   { name="Robert Goss", email="rgoss@yat.ai" },
   { name="Jarod Hart", email="jhart@yat.ai" },
