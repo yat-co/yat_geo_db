@@ -567,10 +567,15 @@ class NgramSearchManager(object):
 
 
 class GeoManager(ShapeManager, RadiusSearchManager, NgramSearchManager):
-    def __init__(self, partitions: Union[List, Set] = None, lower_only: bool = True):
-        self.lower_only = lower_only # Indication if all stored items are lower case
+    def __init__(self,
+                 partitions: Union[List, Set] = None,
+                 lower_only: bool = True,
+                 data_dir: str = os.path.join("temp", "data")):
+
+        self.lower_only = lower_only  # Indication if all stored items are lower case
         self.partitions = set(partitions) if partitions is not None else None
         self.partitioned = self.partitions is not None
+        self.data_dir = data_dir
 
         assert self.lower_only, "Currently only supports lower_only=True"
         assert not self.partitioned, "Currently only supports unpartitioned data"
@@ -621,7 +626,7 @@ class GeoManager(ShapeManager, RadiusSearchManager, NgramSearchManager):
         geo_shape_file_name = 'geo_manager_shape.json'
         
         # Load Local
-        local_path = os.path.join("temp", "data", "geo_db", version or "current")
+        local_path = os.path.join(self.data_dir, "geo_db", version or "current")
         if os.path.exists(local_path) and not force_db_fetch:
             with open(os.path.join(local_path, search_file_name), 'r') as f:
                 self.search_dict = json.load(f)
