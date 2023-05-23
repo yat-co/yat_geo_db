@@ -469,6 +469,28 @@ class NgramSearchManager(object):
             return fuzzy_score * .9
         return (fuzzy_score * .9) + (log(population) * .1)
 
+    def best_fuzzy_search(self,
+                          search_entity: str,
+                          partition: str = None,
+                          score_threshold: float = .90,
+                          filters: Dict = None) -> Union[Dict, None]:
+        """
+        Wrapper around fuzzy_search to fetch the best result above a predefined
+        threshold.  Intended to be a Best Result Search
+        """
+        res_ls = self.fuzzy_search(
+            search_entity=search_entity, partition=partition, num_results=1,
+            filters=filters
+        )
+
+        # Return Best Result if above threshold
+        if len(res_ls) == 0:
+            return None
+        res = res_ls[0]
+        if res["score"] >= score_threshold:
+            return res
+        return None
+
     def fuzzy_search(self,
                      search_entity: str,
                      partition: str = None,
