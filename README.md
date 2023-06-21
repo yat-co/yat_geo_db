@@ -29,7 +29,9 @@ from yat_geo_db import GeoManager as GeoManagerImport
 
 GeoManager = GeoManagerImport()
 
-GeoManager.load_data()
+GeoManager.load_data(
+    force_db_fetch= False, cache_local=True, compressed=True
+)
 ```
 
 Refresh local data (current version)
