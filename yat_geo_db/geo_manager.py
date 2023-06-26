@@ -9,6 +9,7 @@ from jellyfish import damerau_levenshtein_distance
 
 from datetime import datetime
 from collections import Counter
+import gzip
 import logging
 from math import log
 import os
@@ -643,10 +644,34 @@ class GeoManager(ShapeManager, RadiusSearchManager, NgramSearchManager):
             version_path = f"v/{version}/"
         return f"{BASE_STORE_URL}/{version_path}"
 
-    def load_data(self, version: str = None, force_db_fetch: bool = False, cache_local: bool = True):
+    def load_data(self,
+                  version: str = None,
+                  force_db_fetch: bool = False,
+                  cache_local: bool = True,
+                  compressed: bool = False):
+        """
+        Load Data
+        
+        Parameters
+        ------------
+            version str optional
+                Version of Geo Database Dump
+            force_db_fetch bool false
+                Force database refresh/fetch
+            cache_local bool true
+                Cache files locally, default is true
+            compressed bool false
+                To be depreciated for always true, fetch compressed files
+        """
         search_file_name = 'geo_manager_ngram_search.json'
         geo_shape_file_name = 'geo_manager_shape.json'
-        
+
+        fetch_search_file_name = search_file_name
+        fetch_geo_shape_file_name = geo_shape_file_name
+        if compressed:
+            fetch_search_file_name += ".gz"
+            fetch_geo_shape_file_name += ".gz"
+
         # Load Local
         local_path = os.path.join(self.data_dir, "geo_db", version or "current")
         if os.path.exists(local_path) and not force_db_fetch:
@@ -661,16 +686,26 @@ class GeoManager(ShapeManager, RadiusSearchManager, NgramSearchManager):
             return
         
         # Load Search File
-        response = requests.get(f'{self.get_base_url(version=version)}{search_file_name}')
+        response = requests.get(f'{self.get_base_url(version=version)}{fetch_search_file_name}')
         if response.status_code == 200: 
-            self.search_dict = response.json()
+            if compressed:
+                self.search_dict = json.loads(
+                    gzip.decompress(response.content).decode("utf-8")
+                )
+            else:
+                self.search_dict = response.json()
         else:
             raise ValueError(f"Unable to load search file reason={response.text}")
 
         # Load Shape File
-        response = requests.get(f'{self.get_base_url(version=version)}{geo_shape_file_name}')
+        response = requests.get(f'{self.get_base_url(version=version)}{fetch_geo_shape_file_name}')
         if response.status_code == 200: 
-            self.geo_shape_dict = response.json()
+            if compressed:
+                self.geo_shape_dict = json.loads(
+                    gzip.decompress(response.content).decode("utf-8")
+                )
+            else:
+                self.geo_shape_dict = response.json()
         else:
             raise ValueError(f"Unable to load shape file reason={response.text}")
 
