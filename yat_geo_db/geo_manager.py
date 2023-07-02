@@ -19,7 +19,7 @@ import pytz
 import re
 import requests
 from statistics import mean
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Optional, Set, Union
 
 
 logger = logging.getLogger(__name__)
@@ -239,7 +239,7 @@ class RadiusSearchManager(object):
                       radius,
                       country_exact: bool = False,
                       full_results: bool = False, 
-                      filters: Dict = None):
+                      filters: Dict = None) -> List[Union[int, Dict]]:
         """
         Perform Radius Search by Reference Code
         
@@ -270,9 +270,27 @@ class RadiusSearchManager(object):
         if country_exact:
             country_filter = shape_obj.get('ref_data', {}).get('country')
 
-        shape_id_ls = self.get_radius_lat_lng_shape_ids(
+        return self.radius_search_lat_lng(
             latitude=shape_obj['latitude'],
             longitude=shape_obj['longitude'],
+            radius=radius,
+            reference_code=reference_code,
+            country_filter=country_filter,
+            full_results=full_results,
+            filters=filters
+        )
+
+    def radius_search_lat_lng(self,
+                              latitude: float,
+                              longitude: float,
+                              radius,
+                              reference_code: str = None,
+                              country_filter: str = None,
+                              full_results: bool = False,
+                              filters: Dict = None) -> List[Union[int, Dict]]:
+        shape_id_ls = self.get_radius_lat_lng_shape_ids(
+            latitude=latitude,
+            longitude=longitude,
             radius=radius,
             country_filter=country_filter,
             filters=filters
@@ -283,13 +301,25 @@ class RadiusSearchManager(object):
             shape_obj_ls = [
                 self.get_shape_by_id(shape_id) for shape_id in shape_id_ls
             ]
-            
+
             # Add Distance
             for shape_obj in shape_obj_ls:
-                shape_obj.update({
-                    "distance": self.get_shape_pair_distance(reference_code, shape_obj["reference_code"])
-                })
-            
+                if reference_code:
+                    shape_obj.update({
+                        "distance": self.get_shape_pair_distance(reference_code, shape_obj["reference_code"])
+                    })
+                else:
+                    raw_distance = round(lat_lng_dist(
+                        lat_lng_1=(latitude, longitude),
+                        lat_lng_2=(shape_obj["latitude"], shape_obj["longitude"]),
+                    ), 4)
+                    distance = {
+                        "distance": raw_distance,
+                        "normalized_distance": raw_distance,
+                        "aggregate": True
+                    }
+                    shape_obj.update({"distance": distance})
+
             return shape_obj_ls
 
         return shape_id_ls
@@ -323,11 +353,11 @@ class RadiusSearchManager(object):
         res = [
             radius_shape for radius_shape in self.radius_search_map.values()
             if radius_shape.radius_match(
-                latitude = latitude,
-                longitude = longitude,
-                lat_delta = lat_delta,
-                lng_delta = lng_delta
-            ) 
+                latitude=latitude,
+                longitude=longitude,
+                lat_delta=lat_delta,
+                lng_delta=lng_delta
+            )
             and not radius_shape.is_aggregate
             and apply_shape_filters(
                 value=radius_shape.shape_extra, filters=filters
@@ -335,7 +365,7 @@ class RadiusSearchManager(object):
         ]
         return res
 
-    def get_shape_pair_distance(self, orig_shape_ref, dest_shape_ref) -> dict:
+    def get_shape_pair_distance(self, orig_shape_ref, dest_shape_ref) -> Dict:
         """
         Get the distance between two Radius Shape object via `reference_code`
         """
@@ -474,7 +504,7 @@ class NgramSearchManager(object):
                           search_entity: str,
                           partition: str = None,
                           score_threshold: float = .90,
-                          filters: Dict = None) -> Union[Dict, None]:
+                          filters: Dict = None) -> Optional[Dict]:
         """
         Wrapper around fuzzy_search to fetch the best result above a predefined
         threshold.  Intended to be a Best Result Search
