@@ -175,6 +175,7 @@ class RadiusSearchShape(object):
         self.short_display = shape_obj['short_display']
         self.reference_code = shape_obj['reference_code']
         self.shape_extra = shape_obj
+        self.country_code = shape_obj.get('ref_data', {}).get('country')
 
         # Set Bounding Box for Aggregates
         if self.is_aggregate:
@@ -191,8 +192,14 @@ class RadiusSearchShape(object):
         # This is approximate distance.  It performs well for small radii, but will not be accurate for larger radii.
         # We can use lat_lng_dist instead - more computation, but is more accurate.
         if country_filter is not None:
-            if country_filter != self.shape_extra.get('ref_data', {}).get('country') != country_filter:
+            if country_filter != self.country_code:
                 return False
+
+        if abs(latitude - self.latitude) > lat_delta:
+            return False
+
+        if abs(longitude - self.longitude) > lng_delta:
+            return False
 
         return (((((latitude - self.latitude) / lat_delta)**2) +
                  (((longitude - self.longitude) / lng_delta)**2))
@@ -201,7 +208,7 @@ class RadiusSearchShape(object):
     def radius_check_contains(self, latitude, longitude, lat_delta, lng_delta, country_filter: str = None):
         try:
             if country_filter is not None:
-                if country_filter != self.shape_extra.get('ref_data', {}).get('country') != country_filter:
+                if country_filter != self.country_code:
                     return False
 
             return (
