@@ -25,6 +25,12 @@ from typing import Dict, List, Optional, Set, Union
 logger = logging.getLogger(__name__)
 
 
+CountryUsa = "US"
+CountryCanada = "CA"
+CountryMexico = "MX"
+CountryOther = "ZZ"
+
+
 def geo_damerau_levenshtein_distance(val1, val2):
     return min(
         damerau_levenshtein_distance(val1.split(',')[0], val2.split(',')[0]),
@@ -32,14 +38,28 @@ def geo_damerau_levenshtein_distance(val1, val2):
     )
 
 
-def geo_auto_complete_score(result: Dict) -> float:
+
+def get_country_score(country: str) -> float:
+    """Get Country Score to Sort Elements within desired Country First, option to
+    be configurable
+
+    Parameters
+    ----------
+    country : str
+        Country Code
+
+    Returns
+    -------
+    float
+        Country Score, USA = 1
+        
+    TODO:
+    -------
+        Make Configurable within Setings
     """
-    Geo Auto Complete Scoring considering both tversky index rating and
-    population
-    """
-    if result['population'] <= 0:
-        return (result['rating'] * .9)
-    return (result['rating'] * .9) + (log(result['population']) * .1)
+    return {
+        CountryUsa: 1.0, CountryCanada: 0.9, CountryMexico: 0.8
+    }.get(country, 0.7)
 
 
 def apply_shape_filters(value, filters):
@@ -495,7 +515,19 @@ class NgramSearchManager(object):
         fuzzy_score += (source_str.startswith(search_str) * (fuzzy_score * 0.15))
         return fuzzy_score
 
-    def geo_search_score(self, search_str: str, source_str: str, population: int) -> float:
+    def geo_search_score(self, search_str: str, entity: Dict) -> float:
+
+        if entity is None:
+            return 0
+
+        source_str = entity.get("clean_value", "").lower()
+        population = entity.get("population", 0)
+
+        # Country Score (Limit to Desired Location)
+        country_score = get_country_score(
+            country=entity.get("ref_data", {}).get("country", None)
+        )
+
         # Postal Code
         if search_str.isnumeric():
             # Split to just base string
@@ -504,8 +536,9 @@ class NgramSearchManager(object):
             fuzzy_score = self.entity_fuzzy_score(search_str, source_str)
 
         if population <= 0 or fuzzy_score <= 0.65:
-            return fuzzy_score * .9
-        return (fuzzy_score * .9) + (log(population) * .1)
+            return fuzzy_score * .9 * country_score
+        
+        return (fuzzy_score * .9) + (log(population) * .1) * country_score
 
     def best_fuzzy_search(self,
                           search_entity: str,
@@ -572,9 +605,8 @@ class NgramSearchManager(object):
                         self.geo_shape_dict[partition].get(key, {}).get('clean_value', '').lower()
                     ),
                     'score': self.geo_search_score(
-                        search_entity,
-                        self.geo_shape_dict[partition].get(key, {}).get('clean_value', '').lower(),
-                        self.geo_shape_dict.get(key, {}).get('population', 0)
+                        search_str=search_entity,
+                        entity=self.geo_shape_dict.get(key, {})
                     ),
                     'id': key,
                     'extra': self.geo_shape_dict[partition].get(key, None)
@@ -604,17 +636,15 @@ class NgramSearchManager(object):
                         self.geo_shape_dict.get(key, {}).get('clean_value', '').lower(),
                     ),
                     'score': self.geo_search_score(
-                        search_entity,
-                        self.geo_shape_dict.get(key, {}).get('clean_value', '').lower(),
-                        self.geo_shape_dict.get(key, {}).get('population', 0)
+                        search_str=search_entity,
+                        entity=self.geo_shape_dict.get(key, {})
                     ),
                     'id': key,
                     'extra': self.geo_shape_dict.get(key, None)
                 }
                 for key in top_search_res.keys()
                 if apply_shape_filters(
-                    value=self.geo_shape_dict.get(key, {}),
-                    filters=filters
+                    value=self.geo_shape_dict.get(key, {}), filters=filters
                 )
             }
 
