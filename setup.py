@@ -6,7 +6,7 @@ install_requires = ['requests', 'numpy', 'jellyfish', 'pytz']
 
 setup(
     name='yat_geo_db',
-    version='1.1.1',
+    version='1.1.2',
     author='YAT, LLC',
     author_email='rgoss@yat.ai, jhart@yat.ai',
     packages=['yat_geo_db'],
